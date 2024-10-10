@@ -3,7 +3,7 @@ import numpy as np
 from util.calculations import calculate_rsi, calculate_ema
 
 # Generating Training Sequences
-def create_sequences(candles, seq_length=100):
+def create_sequences(candles, seq_length=128):
     x_close, x_open, x_high, x_low, x_rsi, x_ema20, x_ema50, x_ema100, y_up, y_down = [], [], [], [], [], [], [], [], [], []
 
     close = candles[:,0]
@@ -22,10 +22,10 @@ def create_sequences(candles, seq_length=100):
         high_seq = high[i:i+seq_length]
         low_seq = low[i:i+seq_length]
 
-        rsi_seq = rsi[i + seq_length]
-        ema20_seq = ema20[i + seq_length]
-        ema50_seq = ema50[i + seq_length]
-        ema100_seq = ema100[i + seq_length]
+        rsi_seq = rsi[i:i + seq_length]
+        ema20_seq = ema20[i:i + seq_length]
+        ema50_seq = ema50[i:i + seq_length]
+        ema100_seq = ema100[i:i + seq_length]
 
         x_close.append(close_seq)
         x_open.append(open_seq)
@@ -49,9 +49,6 @@ def create_sequences(candles, seq_length=100):
         else:
             y_up.append(0)
             y_down.append(0)
-
-        print(x_close.shape)
-        print(y_down.shape)
     
     
     return np.array(x_close), np.array(x_open), np.array(x_high), np.array(x_low), np.array(x_rsi), np.array(x_ema20), np.array(x_ema50), np.array(x_ema100), np.array(y_up), np.array(y_down)
