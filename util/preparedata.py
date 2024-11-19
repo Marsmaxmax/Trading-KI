@@ -1,8 +1,8 @@
 import pandas as pd
 
 # CSV-Datei laden
-input_file = 'input.csv'  # Name der Eingabedatei
-output_file = 'output.csv'  # Name der Ausgabedatei
+input_file = 'data\input.csv'  # Name der Eingabedatei
+output_file = 'data/output.csv'  # Name der Ausgabedatei
 
 # Daten einlesen
 data = pd.read_csv(input_file, header=None)

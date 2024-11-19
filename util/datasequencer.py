@@ -4,51 +4,40 @@ from util.calculations import calculate_rsi, calculate_ema
 
 # Generating Training Sequences
 def create_sequences(candles, seq_length=128):
-    x_close, x_open, x_high, x_low, x_rsi, x_ema20, x_ema50, x_ema100, y_up, y_down = [], [], [], [], [], [], [], [], [], []
+    x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3, y_close, y_open, y_high, y_low = [], [], [], [], [], [], [], [], [], [], []
 
     close = candles[:,0]
     open = candles[:,1]
     high = candles[:,2]
     low = candles[:,3]
 
-    rsi = calculate_rsi(close, 20)
-    ema20 = calculate_ema(close, 20)
-    ema50 = calculate_ema(close, 50)
-    ema100 = calculate_ema(close, 100)
+    ema1 = calculate_ema(close, int(seq_length/4))
+    ema2 = calculate_ema(close, int(seq_length/2))
+    ema3 = calculate_ema(close, int(seq_length))
 
-    for i in range(len(candles) - (seq_length + 10)): 
+    for i in range(seq_length, len(candles) - (seq_length + 1)): 
         close_seq = close[i:i+seq_length]
         open_seq = open[i:i+seq_length]
         high_seq = high[i:i+seq_length]
         low_seq = low[i:i+seq_length]
 
-        rsi_seq = rsi[i:i + seq_length]
-        ema20_seq = ema20[i:i + seq_length]
-        ema50_seq = ema50[i:i + seq_length]
-        ema100_seq = ema100[i:i + seq_length]
+        ema1_seq = ema1[i:i + seq_length]
+        ema2_seq = ema2[i:i + seq_length]
+        ema3_seq = ema3[i:i + seq_length]
 
         x_close.append(close_seq)
         x_open.append(open_seq)
         x_high.append(high_seq)
         x_low.append(low_seq)
 
-        x_rsi.append(rsi_seq)
-        x_ema20.append(ema20_seq)
-        x_ema50.append(ema50_seq)
-        x_ema100.append(ema100_seq)
+        x_ema1.append(ema1_seq)
+        x_ema2.append(ema2_seq)
+        x_ema3.append(ema3_seq)
         
-        # Berechnung des Trends
-        if close[i+seq_length+10] > close[i+seq_length]*1.005:
-            diffup = close[i+seq_length+10] - close[i+seq_length]
-            y_up.append(diffup)
-            y_down.append(0)
-        elif close[i+seq_length+10] < close[i+seq_length]*1.005:
-            diffdown = close[i+seq_length]
-            y_up.append(0)
-            y_down.append(diffdown)
-        else:
-            y_up.append(0)
-            y_down.append(0)
+        y_close.append(close[i+seq_length+1])
+        y_open.append(open[i+seq_length+1])
+        y_high.append(high[i+seq_length+1])
+        y_low.append(low[i+seq_length+1])
     
     
-    return np.array(x_close), np.array(x_open), np.array(x_high), np.array(x_low), np.array(x_rsi), np.array(x_ema20), np.array(x_ema50), np.array(x_ema100), np.array(y_up), np.array(y_down)
+    return np.array(x_close).reshape(-1,seq_length, 1), np.array(x_open).reshape(-1,seq_length, 1), np.array(x_high).reshape(-1,seq_length, 1), np.array(x_low).reshape(-1,seq_length, 1), np.array(x_ema1).reshape(-1,seq_length, 1), np.array(x_ema2).reshape(-1,seq_length, 1), np.array(x_ema3).reshape(-1,seq_length, 1), np.array(y_close).reshape(-1,seq_length, 1), np.array(y_open).reshape(-1,seq_length, 1), np.array(y_high).reshape(-1,seq_length, 1), np.array(y_low).reshape(-1,seq_length, 1)
