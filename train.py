@@ -18,7 +18,7 @@ tf.debugging.set_log_device_placement(False)
 # sys.argv[0] ist der Name des Skripts
 # sys.argv[1] ist das erste Argument von der Kommandozeile
 if len(sys.argv) > 1:
-    print(f" Anzahl Durchläufe{sys.argv[1]}")
+    print(f" Anzahl Durchläufe {sys.argv[1]}")
     runs = int(sys.argv[1])
 elif len(sys.argv) > 2:
     print(f" Batch Anzahl{sys.argv[2]}")
