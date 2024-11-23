@@ -24,7 +24,7 @@ def custom_mean_squared_error(y_true, y_pred):
     return tf.math.reduce_mean(tf.square(y_true - y_pred), axis=-1)
 
 customoptimizer = tf.keras.optimizers.RMSprop(
-    learning_rate=0.01,
+    learning_rate=0.001,
     rho=0.9,           
     momentum=0.8,      
     epsilon=1e-7,      

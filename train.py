@@ -9,13 +9,12 @@ import os
 import sys
 
 
-input_file = 'data/train1.csv'  # Name der Eingabedatei
+input_file = 'data/output.csv'  # Name der Eingabedatei
 model_file = 'trend_model.keras'  # Name der Datei, in der das Modell gespeichert wird
-batch = 16
+batch = 4
 runs = int()
 
 tf.debugging.set_log_device_placement(False)
-batch = 128
 # sys.argv[0] ist der Name des Skripts
 # sys.argv[1] ist das erste Argument von der Kommandozeile
 if len(sys.argv) > 1:
