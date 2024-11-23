@@ -54,7 +54,7 @@ def create_predsequences(candles, seq_length=128):
     ema2 = calculate_ema(close, int(seq_length/2))
     ema3 = calculate_ema(close, int(seq_length))
 
-    for i in range(seq_length, len(candles) - (seq_length + 1)): 
+    for i in range(seq_length, len(candles) - (seq_length)): 
         close_seq = close[i:i+seq_length]
         open_seq = open[i:i+seq_length]
         high_seq = high[i:i+seq_length]
