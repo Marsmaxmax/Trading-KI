@@ -2,10 +2,10 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.models import load_model
-from util.datasequencer import create_predsequences
+from util.datasequencer import create_predsequences, create_sequences
 
 # Parameter
-input_file = 'predict.csv'  # Name der Eingabedatei
+input_file = 'data/predict.csv'  # Name der Eingabedatei
 model_file = 'trend_model.keras'  # Name der Datei, in der das Modell gespeichert wird
 seq_length = 100
 
@@ -13,15 +13,16 @@ seq_length = 100
 data = pd.read_csv(input_file, header=None)
 candles = data.values
 
-x = {x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3} = create_predsequences(candles, 64)
+x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3, y_candle = create_sequences(candles, 64)
 # Modell laden
 model = load_model(model_file)
 print(f'Modell "{model_file}" erfolgreich geladen.')
-
+print(x_close.shape)
 # Vorhersagen treffen
-up_probabilities, down_probabilities = predictions = model.predict(x)
+predictions = model.predict([x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3])
 
 
 # Beispielausgabe
-for i in range(5):
-    print(f"Aufwärtstrend Wahrscheinlichkeit: {up_probabilities[i][0]:.2f}, Abwärtstrend Wahrscheinlichkeit: {down_probabilities[i][0]:.2f}")
+print(x_close[0, 63])
+print(y_candle)
+print(predictions)

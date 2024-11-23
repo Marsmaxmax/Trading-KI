@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import tensorflow as tf
+import keras
 from tensorflow.keras.models import Model, save_model, load_model
 from tensorflow.keras.layers import Dense, LSTM, Input, Concatenate, Dropout, GlobalAveragePooling1D
 from util.datasequencer import create_sequences
@@ -18,7 +19,20 @@ else:
     print(f'Modell nicht"{model_file}" gefunden')
     exit()
 
-customoptimizer = tf.keras.optimizers.RMSprop()
 
-model.compile(optimizer=customoptimizer,loss={'output_close': 'binary_crossentropy', 'output_open': 'binary_crossentropy', 'output_high': 'binary_crossentropy', 'output_low': 'binary_crossentropy'}, metrics={'output_close': 'accuracy', 'output_open': 'accuracy', 'output_high': 'accuracy', 'output_low': 'accuracy'})
+def custom_mean_squared_error(y_true, y_pred):
+    return tf.math.reduce_mean(tf.square(y_true - y_pred), axis=-1)
+
+customoptimizer = tf.keras.optimizers.RMSprop(
+    learning_rate=0.01,
+    rho=0.9,           
+    momentum=0.8,      
+    epsilon=1e-7,      
+    centered=True,      
+    clipnorm=1.0,       
+    clipvalue=None,       
+    global_clipnorm=None 
+    )
+
+model.compile(optimizer=customoptimizer, loss='mse', metrics=['mse','mae','accuracy'])
 model.save(model_file)
