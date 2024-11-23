@@ -10,14 +10,6 @@ import sys
 
 input_file = 'data/train1.csv'  # Name der Eingabedatei
 model_file = 'trend_model.keras'  # Name der Datei, in der das Modell gespeichert wird
-
-data = pd.read_csv(input_file, header=None)
-
-candles = data.values  # Close, Open, High, Low
-
-# Daten in Sequenzen umwandeln
-x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3, y_candle = create_sequences(candles, 64)
-
 # Überprüfen, ob das Modell existiert und geladen werden kann
 if os.path.exists(model_file):
     # Modell laden
@@ -43,5 +35,4 @@ customoptimizer = tf.keras.optimizers.RMSprop(
     )
 
 model.compile(optimizer=customoptimizer, loss='mse', metrics=['mse','mae','accuracy'])
-history = model.fit([x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3], y_candle, epochs=2, batch_size=4, validation_split=0.2)
 model.save(model_file)
