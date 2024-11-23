@@ -4,7 +4,7 @@ from util.calculations import calculate_rsi, calculate_ema
 
 # Generating Training Sequences
 def create_sequences(candles, seq_length=128):
-    x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3, y_close, y_open, y_high, y_low = [], [], [], [], [], [], [], [], [], [], []
+    x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3, y_candle= [], [], [], [], [], [], [], []
 
     close = candles[:,0]
     open = candles[:,1]
@@ -15,7 +15,7 @@ def create_sequences(candles, seq_length=128):
     ema2 = calculate_ema(close, int(seq_length/2))
     ema3 = calculate_ema(close, int(seq_length))
 
-    for i in range(seq_length, len(candles) - (seq_length + 1)): 
+    for i in range(seq_length, len(candles) - (seq_length+1)): 
         close_seq = close[i:i+seq_length]
         open_seq = open[i:i+seq_length]
         high_seq = high[i:i+seq_length]
@@ -34,13 +34,10 @@ def create_sequences(candles, seq_length=128):
         x_ema2.append(ema2_seq)
         x_ema3.append(ema3_seq)
         
-        y_close.append(close[i+seq_length+1])
-        y_open.append(open[i+seq_length+1])
-        y_high.append(high[i+seq_length+1])
-        y_low.append(low[i+seq_length+1])
+        y_candle.append([close[i+seq_length+1], open[i+seq_length+1],high[i+seq_length+1],low[i+seq_length+1]])
     
     
-    return np.array(x_close), np.array(x_open), np.array(x_high), np.array(x_low), np.array(x_ema1), np.array(x_ema2), np.array(x_ema3), np.array(y_close), np.array(y_open), np.array(y_high), np.array(y_low)
+    return np.array(x_close), np.array(x_open), np.array(x_high), np.array(x_low), np.array(x_ema1), np.array(x_ema2), np.array(x_ema3), np.array(y_candle)
 
 def create_predsequences(candles, seq_length=128):
     x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3 = [], [], [], [], [], [], []

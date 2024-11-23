@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.models import Model
+from tensorflow.keras.regularizers import l2
 from tensorflow.keras.layers import Dense, LSTM, Input, Concatenate, Dropout, GlobalAveragePooling1D, Flatten
 from util.datasequencer import create_sequences
 import os
@@ -16,7 +17,7 @@ data = pd.read_csv(input_file, header=None)
 candles = data.values  # Close, Open, High, Low
 
 # Daten in Sequenzen umwandeln
-x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3, y_close, y_open, y_high, y_low = create_sequences(candles, 64)
+x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3, y_candle = create_sequences(candles, 64)
 
 #******************
 #******Modell******
@@ -30,38 +31,31 @@ input_ema1 = Input(shape=(64,1))
 input_ema2 = Input(shape=(64,1))
 input_ema3 = Input(shape=(64,1))
 
-close = LSTM(64, return_sequences = True)(LSTM(128, return_sequences = True)(Dense(128)(input_close)))
-open = LSTM(64, return_sequences = True)(LSTM(128, return_sequences = True)(Dense(128)(input_open)))
-high = LSTM(64, return_sequences = True)(LSTM(128, return_sequences = True)(Dense(128)(input_high)))
-low = LSTM(64, return_sequences = True)(LSTM(128, return_sequences = True)(Dense(128)(input_low)))
-ema1 = LSTM(64, return_sequences = True)(LSTM(128, return_sequences = True)(Dense(128)(input_ema1)))
-ema2 = LSTM(64, return_sequences = True)(LSTM(128, return_sequences = True)(Dense(128)(input_ema2)))
-ema3 = LSTM(64, return_sequences = True)(LSTM(128, return_sequences = True)(Dense(128)(input_ema3)))
+close = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_close))
+open = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_open))
+high = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_high))
+low = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_low))
+ema1 = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_ema1))
+ema2 = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_ema2))
+ema3 = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_ema3))
+
+all = Dense(128, activation ='linear')(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(Dense(128,activation = 'relu',kernel_regularizer = l2(0.01))(Concatenate()([close,open,high,low,ema1,ema2,ema3])))))))
+all = Dense(64,kernel_regularizer = l2(0.01))(LSTM(64, return_sequences = False, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(all)))
 
 
-all = Dense(64)(Dense(128, activation ='linear')(LSTM(128, return_sequences = True)(LSTM(128, return_sequences = True)(Concatenate()([close, open, high, low, ema1, ema2, ema3])))))
+output = Dense(4, activation='linear', name='output')(all)
 
-close = Dense(64)(LSTM(64, return_sequences = True)(LSTM(64, return_sequences = True)(Concatenate()([all, close]))))
-open = Dense(64)(LSTM(64, return_sequences = True)(LSTM(64, return_sequences = True)(Concatenate()([all, open]))))
-high = Dense(64)(LSTM(64, return_sequences = True)(LSTM(64, return_sequences = True)(Concatenate()([all, high]))))
-low = Dense(64)(LSTM(64, return_sequences = True)(LSTM(64, return_sequences = True)(Concatenate()([all, low]))))
-
-output_close = Dense(1,activation = 'linear',name='output_close')(Flatten()(close))
-output_open = Dense(1,activation = 'linear',name='output_open')(Flatten()(open))
-output_high = Dense(1,activation = 'linear',name='output_high')(Flatten()(high))
-output_low = Dense(1,activation = 'linear',name='output_low')(Flatten()(low))
-
-
+print(y_candle.shape)
 # Modell mit mehreren Ausgaben erstellen
-model = Model(inputs=[input_close, input_open, input_high, input_low, input_ema1, input_ema2,input_ema3], outputs=[output_close,output_open,output_high,output_low])
+model = Model(inputs=[input_close, input_open, input_high, input_low, input_ema1, input_ema2,input_ema3], outputs=output)
 
 # Modell kompilieren
-model.compile(optimizer='adam',loss={'output_close': 'binary_crossentropy', 'output_open': 'binary_crossentropy', 'output_high': 'binary_crossentropy', 'output_low': 'binary_crossentropy'}, metrics={'output_close': 'accuracy', 'output_open': 'accuracy', 'output_high': 'accuracy', 'output_low': 'accuracy'})
+model.compile(optimizer='adam',loss='mse', metrics={'output': 'accuracy'})
 
 # Modellübersicht anzeigen
 model.summary()
 # Training des Modells
-history = model.fit([x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3], [y_close, y_open, y_high, y_low], epochs=1, batch_size=32, validation_split=0.2)
+history = model.fit([x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3], y_candle, epochs=1, batch_size=32, validation_split=0.2)
 
 # Modell speichern
 model.save(model_file)
