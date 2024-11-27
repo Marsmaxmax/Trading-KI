@@ -1,10 +1,12 @@
+import keras
 import pandas as pd
 import numpy as np
-from tensorflow.keras.models import Model
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.layers import Dense, LSTM, Input, Concatenate, Dropout, GlobalAveragePooling1D, Flatten
+from keras.api.models import Model
+from keras.api.regularizers import l2
+from keras.api.layers import Dense, LSTM, Input, Concatenate, Dropout, GlobalAveragePooling1D, Flatten
+import tensorflow as tf
+from util.customError import SemiLinearSquared
 from util.datasequencer import create_sequences
-import os
 
 input_file = 'data/train1.csv'  # Name der Eingabedatei
 model_file = 'trend_model.keras'  # Name der Datei, in der das Modell gespeichert wird
@@ -37,8 +39,9 @@ ema1 = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_ema1))
 ema2 = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_ema2))
 ema3 = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_ema3))
 
-all = Dense(128, activation ='linear')(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(Dense(128,activation = 'relu',kernel_regularizer = l2(0.01))(Concatenate()([close,open,high,low,ema1,ema2,ema3])))))))
-all = Dense(64,kernel_regularizer = l2(0.01))(LSTM(64, return_sequences = False, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(all)))
+cohl = LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(Dense(128)(Concatenate()([close, open, high, low]))))
+all = Dense(128, activation ='linear')(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(Dense(128,activation = 'relu',kernel_regularizer = l2(0.01))(Concatenate()([cohl, ema1,ema2,ema3])))))))
+all = Dense(64,kernel_regularizer = l2(0.01))(LSTM(64, return_sequences = False, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(all)))
 
 
 output = Dense(4, activation='linear', name='output')(all)
@@ -47,8 +50,26 @@ print(y_candle.shape)
 # Modell mit mehreren Ausgaben erstellen
 model = Model(inputs=[input_close, input_open, input_high, input_low, input_ema1, input_ema2,input_ema3], outputs=output)
 
-# Modell kompilieren
-model.compile(optimizer='adam',loss='mse', metrics={'output': 'accuracy'})
+initial_learning_rate = 0.1
+lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+    initial_learning_rate=initial_learning_rate,
+    decay_steps=1000,
+    decay_rate=0.1,
+    staircase=True
+)
+
+customoptimizer = keras.optimizers.RMSprop(
+    learning_rate=lr_schedule,
+    rho=0.9,           
+    momentum=0.8,      
+    epsilon=1e-7,      
+    centered=True,      
+    clipnorm=1.0,       
+    clipvalue=None,       
+    global_clipnorm=None 
+    )
+
+model.compile(optimizer=customoptimizer, loss=SemiLinearSquared(0.1), metrics=['mse','mae','accuracy'])
 
 # Modellübersicht anzeigen
 model.summary()
