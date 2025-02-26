@@ -19,6 +19,11 @@ candles = data.values  # Close, Open, High, Low
 # Daten in Sequenzen umwandeln
 x_candle, x_ema, y_direction, y_long, y_short = create_sequences(candles, INPUT_LENGTH)
 
+x_candle = np.transpose(x_candle, (1, 2, 0))
+x_ema = np.transpose(x_ema, (1, 2, 0))
+y_direction = np.transpose(y_direction, (1, 0))
+y_long = np.transpose(y_long, (1, 0))
+y_short = np.transpose(y_short, (1, 0))
 #******************
 #******Modell******
 #******************

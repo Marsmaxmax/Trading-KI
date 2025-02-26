@@ -1,6 +1,6 @@
 import os
 from keras.api.models import load_model
-from util.customError import SemiLinearSquared
+from util.custom.customError import SemiLinearSquared
 
 def load_custom_model(model_file):
     if os.path.exists(model_file):
