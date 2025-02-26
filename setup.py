@@ -5,10 +5,10 @@ from keras.api.models import Model
 from keras.api.regularizers import l2
 from keras.api.layers import Dense, LSTM, Input, Concatenate, Dropout, GlobalAveragePooling1D, Flatten
 import tensorflow as tf
-from util.customError import SemiLinearSquared
-from util.datasequencer import create_sequences
-
-input_file = 'data/train1.csv'  # Name der Eingabedatei
+from util.custom.customError import SemiLinearSquared
+from preperation.datasequencer import create_sequences
+from config import INPUT_LENGTH
+input_file = 'data/XAUUSD/train_1.csv'  # Name der Eingabedatei
 model_file = 'trend_model.keras'  # Name der Datei, in der das Modell gespeichert wird
 
 
@@ -17,38 +17,30 @@ data = pd.read_csv(input_file, header=None)
 candles = data.values  # Close, Open, High, Low
 
 # Daten in Sequenzen umwandeln
-x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3, y_candle = create_sequences(candles, 64)
+x_candle, x_ema, y_direction, y_long, y_short = create_sequences(candles, INPUT_LENGTH)
 
 #******************
 #******Modell******
 #******************
+print(x_candle.shape)
+print(x_ema.shape)
+print(y_direction.shape)
+print(y_long.shape)
+print(y_short.shape)
 
-input_close = Input(shape=(64,1))
-input_open = Input(shape=(64,1))
-input_high = Input(shape=(64,1))
-input_low = Input(shape=(64,1))
-input_ema1 = Input(shape=(64,1))
-input_ema2 = Input(shape=(64,1))
-input_ema3 = Input(shape=(64,1))
-
-close = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_close))
-open = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_open))
-high = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_high))
-low = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_low))
-ema1 = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_ema1))
-ema2 = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_ema2))
-ema3 = Dense(64)(Dense(128,kernel_regularizer = l2(0.01))(input_ema3))
-
-cohl = LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(Dense(128)(Concatenate()([close, open, high, low]))))
-all = Dense(128, activation ='linear')(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(64, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(Dense(128,activation = 'relu',kernel_regularizer = l2(0.01))(Concatenate()([cohl, ema1,ema2,ema3])))))))
-all = Dense(64,kernel_regularizer = l2(0.01))(LSTM(64, return_sequences = False, dropout = 0.1, recurrent_dropout = 0.1)(LSTM(128, return_sequences = True, dropout = 0.1, recurrent_dropout = 0.1)(all)))
+input_candle = Input(shape=(INPUT_LENGTH,4))
+input_ema = Input(shape=(INPUT_LENGTH,3))
 
 
-output = Dense(4, activation='linear', name='output')(all)
 
-print(y_candle.shape)
+all = Dense(64,kernel_regularizer = l2(0.01))(Concatenate()([input_candle, input_ema]))
+
+output_direction = Dense(1, activation='linear')(GlobalAveragePooling1D()(all))
+output_long = Dense(3, activation='linear')(GlobalAveragePooling1D()(all))
+output_short = Dense(3, activation='linear')(GlobalAveragePooling1D()(all))
+
 # Modell mit mehreren Ausgaben erstellen
-model = Model(inputs=[input_close, input_open, input_high, input_low, input_ema1, input_ema2,input_ema3], outputs=output)
+model = Model(inputs=[input_candle, input_ema], outputs=[output_direction, output_long, output_short])
 
 initial_learning_rate = 0.1
 lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -74,7 +66,7 @@ model.compile(optimizer=customoptimizer, loss=SemiLinearSquared(0.1), metrics=['
 # Modellübersicht anzeigen
 model.summary()
 # Training des Modells
-history = model.fit([x_close, x_open, x_high, x_low, x_ema1, x_ema2, x_ema3], y_candle, epochs=1, batch_size=32, validation_split=0.2)
+history = model.fit([x_candle, x_ema], [y_direction, y_long, y_short], epochs=1, batch_size=32, validation_split=0.2)
 
 # Modell speichern
 model.save(model_file)
