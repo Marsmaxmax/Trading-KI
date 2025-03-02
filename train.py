@@ -34,7 +34,7 @@ else:
     print("Keine Argumente eingegeben.")
     exit()
 
-data = pd.read_csv(training_set_1, header=None)
+data = pd.read_csv(training_set_4, header=None)
 candles = data.values
 x_candle, x_ema, y_direction, y_long, y_short = create_sequences(candles, INPUT_LENGTH)
 
