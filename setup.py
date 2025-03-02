@@ -1,3 +1,4 @@
+import os
 import keras
 import pandas as pd
 import numpy as np
@@ -5,11 +6,12 @@ from keras.api.models import Model
 from keras.api.regularizers import l2
 from keras.api.layers import Dense, LSTM, Input, Concatenate, Dropout, GlobalAveragePooling1D, Flatten
 import tensorflow as tf
+from util.custom.customCallback import PrintLR
 from util.custom.customError import SemiLinearSquared
 from preperation.datasequencer import create_sequences
-from config import INPUT_LENGTH
+from config import CHECKPOINT_DIR, INPUT_LENGTH, MODEL_FILE
 input_file = 'data/XAUUSD/train_1.csv'  # Name der Eingabedatei
-model_file = 'trend_model.keras'  # Name der Datei, in der das Modell gespeichert wird
+
 
 
 data = pd.read_csv(input_file, header=None)
@@ -19,26 +21,32 @@ candles = data.values  # Close, Open, High, Low
 # Daten in Sequenzen umwandeln
 x_candle, x_ema, y_direction, y_long, y_short = create_sequences(candles, INPUT_LENGTH)
 
-x_candle = np.transpose(x_candle, (1, 2, 0))
-x_ema = np.transpose(x_ema, (1, 2, 0))
-y_direction = np.transpose(y_direction, (1, 0))
-y_long = np.transpose(y_long, (1, 0))
-y_short = np.transpose(y_short, (1, 0))
 #******************
 #******Modell******
 #******************
-print(x_candle.shape)
-print(x_ema.shape)
-print(y_direction.shape)
-print(y_long.shape)
-print(y_short.shape)
+# print(x_candle.shape)#Debug
+# print(x_ema.shape)
+# print(y_direction.shape)
+# print(y_long.shape)
+# print(y_short.shape)
 
 input_candle = Input(shape=(INPUT_LENGTH,4))
 input_ema = Input(shape=(INPUT_LENGTH,3))
 
+candle = LSTM(64, return_sequences = True)(input_candle)
+candle = LSTM(64, return_sequences = True)(candle)
+candle = Dense(64,kernel_regularizer = l2(0.01))(candle)
+candle = LSTM(64, return_sequences = True)(candle)
 
 
-all = Dense(64,kernel_regularizer = l2(0.01))(Concatenate()([input_candle, input_ema]))
+ema = LSTM(64, return_sequences = True)(input_ema)
+ema = LSTM(64, return_sequences = True)(ema)
+ema = Dense(64,kernel_regularizer = l2(0.01), activation='sigmoid')(ema)
+ema = LSTM(64, return_sequences = True)(ema)
+
+
+
+all = Dense(64,kernel_regularizer = l2(0.01))(Concatenate()([candle, ema]))
 
 output_direction = Dense(1, activation='linear')(GlobalAveragePooling1D()(all))
 output_long = Dense(3, activation='linear')(GlobalAveragePooling1D()(all))
@@ -71,8 +79,23 @@ model.compile(optimizer=customoptimizer, loss=SemiLinearSquared(0.1), metrics=['
 # Modellübersicht anzeigen
 model.summary()
 # Training des Modells
-history = model.fit([x_candle, x_ema], [y_direction, y_long, y_short], epochs=1, batch_size=32, validation_split=0.2)
 
-# Modell speichern
-model.save(model_file)
-print(f'Modell wurde als "{model_file}" gespeichert.')
+
+checkpoint_prefix = os.path.join(CHECKPOINT_DIR, "ckpt_{epoch}.weights.h5")
+
+callbacks = [
+    tf.keras.callbacks.TensorBoard(log_dir='./logs'),
+    tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix,
+                                       save_weights_only=True),
+    # tf.keras.callbacks.LearningRateScheduler(lr_schedule),
+    PrintLR()
+]
+history = model.fit([x_candle, x_ema], [y_direction, y_long, y_short], epochs=1, batch_size=32, validation_split=0.2, callbacks=callbacks)
+
+
+
+
+
+model.save(MODEL_FILE)
+print(f'Modell wurde als "{MODEL_FILE}" gespeichert.')
+

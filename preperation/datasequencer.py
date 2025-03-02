@@ -56,8 +56,7 @@ def create_sequences(candles, seq_length=100):
         y_short1.append(short1)
         y_short2.append(short2)
         y_short3.append(short3)
-    return np.array([x_close,x_open,x_high,x_low]), np.array([x_ema1,x_ema2,x_ema3]), np.array([y_direction]), np.array([y_long1, y_long2, y_long3]), np.array([y_short1, y_short2, y_short3])
-
+    return np.transpose(np.array([x_close,x_open,x_high,x_low]), (1, 2, 0)), np.transpose(np.array([x_ema1,x_ema2,x_ema3]), (1, 2, 0)), np.transpose(np.array([y_direction]), (1, 0)), np.transpose(np.array([y_long1, y_long2, y_long3]), (1, 0)), np.transpose(np.array([y_short1, y_short2, y_short3]), (1, 0))
 # def create_predsequences(candles, seq_length=100):
     #Todo LATER
     # return None

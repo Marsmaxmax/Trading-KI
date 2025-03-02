@@ -5,3 +5,7 @@ PREDICTION_LENGTH = 15
 
 COMISSION = 2 
 COMISSION_TYPE = "ABSOLUTE" #Either "ABSOLUTE" or "PERCENT"
+
+CHECKPOINT_DIR = './training_checkpoints'
+LOGr_DIR ='./logs'
+MODEL_FILE = 'trend_model.keras'
