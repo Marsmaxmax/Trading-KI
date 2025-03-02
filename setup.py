@@ -85,16 +85,11 @@ checkpoint_prefix = os.path.join(CHECKPOINT_DIR, "ckpt_{epoch}.weights.h5")
 
 callbacks = [
     tf.keras.callbacks.TensorBoard(log_dir='./logs'),
-    tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix,
-                                       save_weights_only=True),
+    tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix, save_weights_only=True),
     # tf.keras.callbacks.LearningRateScheduler(lr_schedule),
     PrintLR()
 ]
 history = model.fit([x_candle, x_ema], [y_direction, y_long, y_short], epochs=1, batch_size=32, validation_split=0.2, callbacks=callbacks)
-
-
-
-
 
 model.save(MODEL_FILE)
 print(f'Modell wurde als "{MODEL_FILE}" gespeichert.')
