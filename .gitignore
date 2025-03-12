@@ -1,3 +1,4 @@
 .venv/
 logs/
 training_checkpoints
+**/__pycache__/
