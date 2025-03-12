@@ -48,15 +48,8 @@ callbacks = [
     # tf.keras.callbacks.LearningRateScheduler(lr_schedule),
     PrintLR()
 ]
-history = model.fit([x_candle, x_ema], [y_long, y_short], epochs = runs, batch_size=batch, validation_split=0.1, callbacks=callbacks)
-
-checkpoint_prefix = os.path.join(CHECKPOINT_DIR, "ckpt_{epoch}")
-
-
-
-
-
-
+history = model.fit([x_candle, x_ema], [y_direction,y_long, y_short], epochs = runs, batch_size=batch, validation_split=0.1, callbacks=callbacks)
 
 model.save(MODEL_FILE)
+model.summary()
 print(f'Modell wurde als "{MODEL_FILE}" gespeichert.')

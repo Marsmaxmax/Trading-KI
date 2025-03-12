@@ -34,12 +34,12 @@ def create_sequences(candles, seq_length=100):
         percentage_dev = percent(close1, close0)
         multlong = 1+(MINIMUM_PROFIT/100)
         multshort = 1-(MINIMUM_PROFIT/100)
-        long1 = close0*multlong < close1
-        long2 = close0*multlong < close2
-        long3 = close0*multlong < close3
-        short1 = close0*multshort > close1
-        short2 = close0*multshort > close2
-        short3 = close0*multshort > close3
+        long1 = int(close0 * multlong < close1)
+        long2 = int(close0*multlong < close2)
+        long3 = int(close0*multlong < close3)
+        short1 = int(close0*multshort > close1)
+        short2 = int(close0*multshort > close2)
+        short3 = int(close0*multshort > close3)
 
         x_close.append(close_seq)
         x_open.append(open_seq)
@@ -56,7 +56,17 @@ def create_sequences(candles, seq_length=100):
         y_short1.append(short1)
         y_short2.append(short2)
         y_short3.append(short3)
-    return np.transpose(np.array([x_close,x_open,x_high,x_low]), (1, 2, 0)), np.transpose(np.array([x_ema1,x_ema2,x_ema3]), (1, 2, 0)), np.transpose(np.array([y_direction]), (1, 0)), np.transpose(np.array([y_long1, y_long2, y_long3]), (1, 0)), np.transpose(np.array([y_short1, y_short2, y_short3]), (1, 0))
+    if len(candles) < pred_len*5 + seq_length:
+        print("Warning: Not enough data for prediction")
+        raise ValueError
+    else:
+        return np.transpose(np.array([x_close,x_open,x_high,x_low]), (1, 2, 0)), \
+               np.transpose(np.array([x_ema1,x_ema2,x_ema3]), (1, 2, 0)), \
+               np.transpose(np.array([y_direction]), (1, 0)), \
+               np.transpose(np.array([y_long1, y_long2, y_long3]),(1, 0)), \
+               np.transpose(np.array([y_short1, y_short2, y_short3]), (1, 0))
+
+
 # def create_predsequences(candles, seq_length=100):
     #Todo LATER
     # return None
