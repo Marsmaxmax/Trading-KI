@@ -8,9 +8,10 @@ from keras.api.layers import Dense, LSTM, Input, Concatenate, Dropout, GlobalAve
 import tensorflow as tf
 from util.custom.customCallback import PrintLR
 from util.custom.customError import SemiLinearSquared
-from keras.api.losses import CategoricalCrossentropy
+from keras.api.losses import BinaryCrossentropy
 from preperation.datasequencer import create_sequences
 from config import CHECKPOINT_DIR, INPUT_LENGTH, MODEL_FILE
+from util.layerblocks import TransformerStack, DenseStack, LSTMStack
 input_file = 'data/XAUUSD/train_1.csv'  # Name der Eingabedatei
 
 
@@ -20,58 +21,42 @@ data = pd.read_csv(input_file, header=None)
 candles = data.values  # Close, Open, High, Low
 
 # Daten in Sequenzen umwandeln
-x_candle, x_ema, y_direction, y_long, y_short = create_sequences(candles, INPUT_LENGTH)
+X, y_long, y_short = create_sequences(candles, INPUT_LENGTH)
 
 #******************
 #******Modell******
 #******************
-# print(x_candle.shape)#Debug
-# print(x_ema.shape)
-# print(y_direction.shape)
-# print(y_long.shape)
-# print(y_short.shape)
-
-input_candle = Input(shape=(INPUT_LENGTH,4))
-input_ema = Input(shape=(INPUT_LENGTH,3))
-
-candle = LSTM(64, return_sequences = True)(input_candle)
-candle = BatchNormalization()(candle)
-candle = LSTM(64, return_sequences = True)(candle)
-candle = Dropout(0.2)(candle)
-candle = Dense(64,kernel_regularizer = l2(0.01))(candle)
-candle = LSTM(64, return_sequences = True)(candle)
-candle = BatchNormalization()(candle)
-candle = Dropout(0.2)(candle)
-candle = Dense(64,kernel_regularizer = l2(0.01))(candle)
-candle = LSTM(64, return_sequences = True)(candle)
 
 
-ema = LSTM(64, return_sequences = True)(input_ema)
-ema = BatchNormalization()(ema)
-ema = LSTM(64, return_sequences = True)(ema)
-ema = Dropout(0.2)(ema)
-ema = Dense(64,kernel_regularizer = l2(0.01))(ema)
-ema = LSTM(64, return_sequences = True)(ema)
-ema = BatchNormalization()(ema)
-ema = Dropout(0.2)(ema)
-ema = Dense(64,kernel_regularizer = l2(0.01), activation='sigmoid')(ema)
-ema = LSTM(64, return_sequences = True)(ema)
+input_candle = Input(shape=(INPUT_LENGTH, 4))
 
+# Transformer-Pfad
+x1 = TransformerStack(input_candle, num_blocks=4, embed_dim=64, num_heads=2, ff_dim=128)
+x1 = DenseStack(x1, num_blocks=4, embed_dim=64)
 
+# LSTM-Pfad
+x2 = LSTMStack(input_candle, num_blocks=4, units=64)
+x2 = DenseStack(x2, num_blocks=4, embed_dim=64)
 
-all = Dense(64,kernel_regularizer = l2(0.01))(Concatenate()([candle, ema]))
-all = BatchNormalization()(all)
-all = Dropout(0.2)(all)
-all = LSTM(64, return_sequences = True)(LSTM(64, return_sequences = True)(LSTM(64, return_sequences = True)(all)))
-all = Dense(64, activation='linear')(all)
+# Zusammenführen
+all = Concatenate()([x1, x2])
+all = DenseStack(all, num_blocks=4, embed_dim=64)
+all = TransformerStack(all, num_blocks=8, embed_dim=64, num_heads=2, ff_dim=128)
+all = LSTMStack(all, num_blocks=8
+                , units=64)
+# Long-Ausgabe
+long_lstm = LSTM(64, return_sequences=False)(all)
+long_dense = Dense(64, activation='sigmoid')(long_lstm)
+long_dense = Dense(16, activation='sigmoid')(long_dense)
+output_long = Dense(1, activation='sigmoid')(long_dense)
 
-output_direction = Dense(1)(Dense(16)(GlobalAveragePooling1D()(Dense(64, activation='selu')(LSTM(64, return_sequences = True)(all)))))
-output_long = Dense(3, activation='sigmoid')(Dense(16, activation='sigmoid')(GlobalAveragePooling1D()((Dense(64, activation='sigmoid')(LSTM(64, return_sequences = True)(all))))))
-output_short = Dense(3, activation='sigmoid')(Dense(16, activation='sigmoid')(GlobalAveragePooling1D()((Dense(64, activation='sigmoid')(LSTM(64, return_sequences = True)(all))))))
-
+# Short-Ausgabe
+short_lstm = LSTM(64, return_sequences=False)(all)
+short_dense = Dense(64, activation='sigmoid')(short_lstm)
+short_dense = Dense(16, activation='sigmoid')(short_dense)
+output_short = Dense(1, activation='sigmoid')(short_dense)
 # Modell mit mehreren Ausgaben erstellen
-model = Model(inputs=[input_candle, input_ema], outputs=[output_direction, output_long, output_short])
-
+model = Model(inputs=[input_candle], outputs=[output_long, output_short])
 initial_learning_rate = 0.01
 lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
     initial_learning_rate=initial_learning_rate,
@@ -91,7 +76,7 @@ customoptimizer = keras.optimizers.RMSprop(
     global_clipnorm=None 
     )
 
-model.compile(optimizer=customoptimizer, loss=CategoricalCrossentropy(), metrics=['accuracy','accuracy','accuracy'])
+model.compile(optimizer=customoptimizer, loss=BinaryCrossentropy(), metrics=['accuracy','accuracy'])
 
 # Modellübersicht anzeigen
 model.summary()
@@ -106,7 +91,7 @@ callbacks = [
     # tf.keras.callbacks.LearningRateScheduler(lr_schedule),
     # PrintLR()
 ]
-history = model.fit([x_candle, x_ema], [y_direction, y_long, y_short], epochs=1, batch_size=32, validation_split=0.2, callbacks=callbacks)
+history = model.fit([X], [y_long, y_short], epochs=1, batch_size=32, validation_split=0.2, callbacks=callbacks)
 
 model.save(MODEL_FILE)
 print(f'Modell wurde als "{MODEL_FILE}" gespeichert.')

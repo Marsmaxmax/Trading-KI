@@ -36,7 +36,7 @@ else:
 
 data = pd.read_csv(training_set_4, header=None)
 candles = data.values
-x_candle, x_ema, y_direction, y_long, y_short = create_sequences(candles, INPUT_LENGTH)
+X, y_long, y_short = create_sequences(candles, INPUT_LENGTH)
 
 model = load_custom_model(MODEL_FILE)
 checkpoint_prefix = os.path.join(CHECKPOINT_DIR, "ckpt_{epoch}.weights.h5")
@@ -48,8 +48,7 @@ callbacks = [
     # tf.keras.callbacks.LearningRateScheduler(lr_schedule),
     PrintLR()
 ]
-history = model.fit([x_candle, x_ema], [y_direction,y_long, y_short], epochs = runs, batch_size=batch, validation_split=0.1, callbacks=callbacks)
-
+history = model.fit([X], [y_long, y_short], epochs=runs, batch_size=1, validation_split=0.2, callbacks=callbacks)
 model.save(MODEL_FILE)
 model.summary()
 print(f'Modell wurde als "{MODEL_FILE}" gespeichert.')

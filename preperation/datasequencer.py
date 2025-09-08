@@ -3,70 +3,56 @@ import numpy as np
 from util.calculations.customMath import percent
 from util.calculations.indicators import calculate_rsi, calculate_ema
 from config import PREDICTION_LENGTH, MINIMUM_PROFIT
+
+# Lokale Normalisierung pro Sequenz
+def normalize_sequence(seq):
+    mean = np.mean(seq, axis=0)
+    std = np.std(seq, axis=0)
+    return (seq - mean) / (std + 1e-8)
+
 # Generating Training Sequences
 def create_sequences(candles, seq_length=100):
-    x_close,x_open,x_high,x_low, x_ema1,x_ema2,x_ema3, y_long1, y_long2, y_long3, y_short1, y_short2, y_short3, y_direction= [], [], [], [], [],[], [], [], [], [], [], [], [], []
     pred_len = PREDICTION_LENGTH
-    close = candles[:,0]
-    open = candles[:,1]
-    high = candles[:,2]
-    low = candles[:,3]
+    
+    x_seq = []  # statt einzelne Features
+    y_long, y_short = [], []
 
-    ema1 = calculate_ema(close, pred_len)
-    ema2 = calculate_ema(close, pred_len*2)
-    ema3 = calculate_ema(close, pred_len*4)
+    close = candles[:, 0]
+    open_ = candles[:, 1]
+    high = candles[:, 2]
+    low = candles[:, 3]
 
-    for i in range(pred_len, len(candles) - (seq_length+pred_len*4)):
+    end_idx = len(candles) - seq_length - pred_len
 
-        close_seq = close[i:i+seq_length]
-        open_seq = open[i:i+seq_length]
-        high_seq = high[i:i+seq_length]
-        low_seq = low[i:i+seq_length]
+    for i in range(end_idx):
+        # Rohsequenz zusammensetzen (shape: [seq_length, 4])
+        seq = np.stack([
+            close[i:i + seq_length],
+            open_[i:i + seq_length],
+            high[i:i + seq_length],
+            low[i:i + seq_length]
+        ], axis=-1)
 
-        ema1_seq = ema1[i:i + seq_length]
-        ema2_seq = ema2[i:i + seq_length]
-        ema3_seq = ema3[i:i + seq_length]
+        # Lokale Normalisierung der Sequenz
+        seq = normalize_sequence(seq)
+        x_seq.append(seq)
 
-        close0 = close[seq_length+i]
-        close1 = close[i+seq_length+pred_len]
-        close2 = close[i+seq_length+(pred_len*2)]
-        close3 = close[i+seq_length+(pred_len*4)]
-        percentage_dev = percent(close1, close0)
-        multlong = 1+(MINIMUM_PROFIT/100)
-        multshort = 1-(MINIMUM_PROFIT/100)
-        long1 = int(close0 * multlong < close1)
-        long2 = int(close0*multlong < close2)
-        long3 = int(close0*multlong < close3)
-        short1 = int(close0*multshort > close1)
-        short2 = int(close0*multshort > close2)
-        short3 = int(close0*multshort > close3)
+        # Einstiegspreis = Close direkt nach der Sequenz
+        entry_price = close[i + seq_length]
 
-        x_close.append(close_seq)
-        x_open.append(open_seq)
-        x_high.append(high_seq)
-        x_low.append(low_seq)
-        x_ema1.append(ema1_seq)
-        x_ema2.append(ema2_seq)
-        x_ema3.append(ema3_seq)
-        
-        y_direction.append(percentage_dev)
-        y_long1.append(long1)
-        y_long2.append(long2)
-        y_long3.append(long3)
-        y_short1.append(short1)
-        y_short2.append(short2)
-        y_short3.append(short3)
-    if len(candles) < pred_len*5 + seq_length:
-        print("Warning: Not enough data for prediction")
-        raise ValueError
-    else:
-        return np.transpose(np.array([x_close,x_open,x_high,x_low]), (1, 2, 0)), \
-               np.transpose(np.array([x_ema1,x_ema2,x_ema3]), (1, 2, 0)), \
-               np.transpose(np.array([y_direction]), (1, 0)), \
-               np.transpose(np.array([y_long1, y_long2, y_long3]),(1, 0)), \
-               np.transpose(np.array([y_short1, y_short2, y_short3]), (1, 0))
+        # Maximaler/Minimaler Preis innerhalb der Vorhersageperiode
+        future_high = np.max(high[i + seq_length : i + seq_length + pred_len])
+        future_low  = np.min(low[i + seq_length : i + seq_length + pred_len])
 
+        # Bedingungen für Long und Short
+        long_ok = future_high >= entry_price * (1 + MINIMUM_PROFIT)
+        short_ok = future_low <= entry_price * (1 - MINIMUM_PROFIT)
 
-# def create_predsequences(candles, seq_length=100):
-    #Todo LATER
-    # return None
+        y_long.append(float(long_ok))
+        y_short.append(float(short_ok))
+
+    X = np.array(x_seq, dtype=np.float32)  # Shape: (batch, seq_length, 4)
+    y_long = np.array(y_long, dtype=np.float32)
+    y_short = np.array(y_short, dtype=np.float32)
+
+    return X, y_long, y_short
