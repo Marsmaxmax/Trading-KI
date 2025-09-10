@@ -1,11 +1,10 @@
 import pandas as pd
 import numpy as np
-from sqlalchemy import false
 import tensorflow as tf
 import keras
 from config import INPUT_LENGTH, MODEL_FILE
 from keras.api.losses import CategoricalCrossentropy
-from util.custom.customError import SemiLinearSquared
+from util.custom.customLoss import SemiLinearSquared
 from util.custom.customfunctions import load_custom_model
 from preperation.datasequencer import create_sequences
 

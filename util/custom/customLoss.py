@@ -26,3 +26,9 @@ class SemiLinearSquared(keras.losses.Loss):
                 'threshold': self.threshold,
                 'threshold_is_relative': self.threshold_is_relative,
                 'regularization_factor': self.regularization_factor}
+
+@register_keras_serializable(package="Custom", name="ProfitOrientedLoss")   
+class ProfitOrientedLoss(keras.losses.Loss):
+    def __init__(self, name="ProfitOrientedLoss", dtype=None):
+        super().__init__(name=name)
+    
