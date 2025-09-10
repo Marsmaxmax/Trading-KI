@@ -4,3 +4,5 @@ training_checkpoints
 **/__pycache__/
 Trading-KI.code-workspace
 **/pack_*.csv
+**/output.csv
+**/input.csv

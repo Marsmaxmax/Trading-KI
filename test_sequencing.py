@@ -4,10 +4,10 @@ from preperation.datasequencer import create_sequences
 import pandas as pd
 import random
 
-data = pd.read_csv('data/BTCUSDT_1m/output.csv', header=None)
+data = pd.read_csv('data/BTCUSDT_1m/10k_packs/pack_65.csv', header=None)
 candles = data.values
 print('checkpoint 1 - data loaded')
-num_tests = 100000
+num_tests = 1000
 
 X_candles, X_balance, X_position, Y_long, Y_short, Y_hold, Y_close = create_sequences(candles, INPUT_LENGTH)
 print('checkpoint 2 - data sequenced')

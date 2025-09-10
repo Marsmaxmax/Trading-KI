@@ -41,7 +41,7 @@ def create_sequences(candles, seq_length=100):
         balance = random.uniform(0.9, 1.1)*action_price
         x_balance.append(balance)
 
-        position_type = random.choice([-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]) # 0: neutral, 1: long, -1: short
+        position_type = random.choice([-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0, 0, 0, 0, 1]) # 0: neutral, 1: long, -1: short
         position_profitable = random.choice([1,1,1,-1, -1]) # 1: profitabel, -1: unprofitabel
         position_difference = random.triangular(0.0001, 0.05, 0.03) # 0.01% bis 4%
         position_open = (action_price * (1 + (position_difference * position_profitable * position_type)) if not position_type == 0 else 0)
