@@ -1,11 +1,11 @@
 import pandas as pd
 
 # CSV-Datei laden
-input_file = 'data/input.csv'  # Name der Eingabedatei
-output_file = 'data/output.csv'  # Name der Ausgabedatei
+input_file = 'data/BTCUSDT_1m/input.csv'  # Name der Eingabedatei
+output_file = 'data/BTCUSDT_1m/output.csv'  # Name der Ausgabedatei
 
 # Daten einlesen
-data = pd.read_csv(input_file, header=None)
+data = pd.read_csv(input_file, header=None, on_bad_lines='skip')
 
 # Überprüfen, ob die neuesten Daten zuerst sind und die Reihenfolge umkehren
 # Annahme: Spalte 0 enthält ein Datum oder etwas Ähnliches, das für die Reihenfolge spricht
@@ -24,11 +24,11 @@ def convert_value(value):
             return None  # Falls die Umwandlung fehlschlägt, None zurückgeben
     return value
 
-# Wende die Umwandlung auf die relevanten Spalten an (1: Open, 2: Close, 3: High, 4: Low)
-for col in [1, 2, 3, 4]:
-    data[col] = data[col].apply(convert_value)
+# Wende die Umwandlung auf die relevanten Spalten an (3: Open, 6: Close, 4: High, 5: Low)
+# for col in [1, 2, 3, 4]:
+    # data[col] = data[col].apply(convert_value)
 
 # Speichern der bereinigten Daten in eine neue CSV-Datei
-data[[1, 2, 3, 4]].to_csv(output_file, header=False, index=False)
+data[[3, 6, 4, 5]].to_csv(output_file, header=False, index=False)
 
 print(f'Die umgewandelte Datei wurde als "{output_file}" gespeichert.')

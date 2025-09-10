@@ -12,13 +12,13 @@ import os
 import sys
 
 
-input_file = 'data/XAUUSD/output.csv'  # Name der Eingabedatei
-training_set_1 = 'data/XAUUSD/train_1.csv'
-training_set_2 = 'data/XAUUSD/train_2.csv'
-training_set_3 = 'data/XAUUSD/train_3.csv'
-training_set_4 = 'data/XAUUSD/train_4.csv'
+input_file = 'data/BTCUSDT_1m/output.csv'  # Name der Eingabedatei
+training_set_1 = 'data/BTCUSDT_1m/10k_packs/pack_1.csv'
+training_set_2 = 'data/BTCUSDT_1m/10k_packs/pack_2.csv'
+training_set_3 = 'data/BTCUSDT_1m/10k_packs/pack_3.csv'
+training_set_4 = 'data/BTCUSDT_1m/10k_packs/pack_4.csv'
 training_sets = [training_set_1, training_set_2, training_set_3, training_set_4]
-batch = 1
+batch = 64
 runs = int()
 
 tf.debugging.set_log_device_placement(False)
@@ -36,7 +36,8 @@ else:
 
 data = pd.read_csv(training_set_4, header=None)
 candles = data.values
-X, y_long, y_short = create_sequences(candles, INPUT_LENGTH)
+X_candles, X_balance, X_position, Y_long, Y_short, Y_hold, Y_close = create_sequences(candles, INPUT_LENGTH)
+
 
 model = load_custom_model(MODEL_FILE)
 checkpoint_prefix = os.path.join(CHECKPOINT_DIR, "ckpt_{epoch}.weights.h5")
@@ -48,7 +49,8 @@ callbacks = [
     # tf.keras.callbacks.LearningRateScheduler(lr_schedule),
     PrintLR()
 ]
-history = model.fit([X], [y_long, y_short], epochs=runs, batch_size=1, validation_split=0.2, callbacks=callbacks)
+history = model.fit([X_candles,X_position, X_balance], [Y_long, Y_short, Y_hold, Y_close], epochs=runs, batch_size=batch, validation_split=0.2, callbacks=callbacks)
+
 model.save(MODEL_FILE)
 model.summary()
 print(f'Modell wurde als "{MODEL_FILE}" gespeichert.')

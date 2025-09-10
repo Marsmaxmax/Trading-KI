@@ -1,3 +1,4 @@
+import random
 import pandas as pd
 import numpy as np
 from util.calculations.customMath import percent
@@ -14,8 +15,8 @@ def normalize_sequence(seq):
 def create_sequences(candles, seq_length=100):
     pred_len = PREDICTION_LENGTH
     
-    x_seq = []  # statt einzelne Features
-    y_long, y_short = [], []
+    x_seq, x_position, x_balance = [], [], []
+    y_long, y_short, y_hold, y_close = [], [], [], []
 
     close = candles[:, 0]
     open_ = candles[:, 1]
@@ -25,6 +26,7 @@ def create_sequences(candles, seq_length=100):
     end_idx = len(candles) - seq_length - pred_len
 
     for i in range(end_idx):
+        action_price = close[i + seq_length]
         # Rohsequenz zusammensetzen (shape: [seq_length, 4])
         seq = np.stack([
             close[i:i + seq_length],
@@ -34,25 +36,55 @@ def create_sequences(candles, seq_length=100):
         ], axis=-1)
 
         # Lokale Normalisierung der Sequenz
-        seq = normalize_sequence(seq)
+        # seq = normalize_sequence(seq)
         x_seq.append(seq)
+        balance = random.uniform(0.9, 1.1)*action_price
+        x_balance.append(balance)
 
-        # Einstiegspreis = Close direkt nach der Sequenz
-        entry_price = close[i + seq_length]
+        position_type = random.choice([-1, 0, 1]) # 0: neutral, 1: long, -1: short
+        position_profitable = random.choice([1, -1]) # 1: profitabel, -1: unprofitabel
+        position_difference = random.uniform(0.0001, 0.04) # 0.01% bis 4%
+        position_open = action_price * (1 + (position_difference * position_profitable * position_type))
 
-        # Maximaler/Minimaler Preis innerhalb der Vorhersageperiode
+        position = np.stack([
+            position_type, # long, short, neutral
+            position_open
+        ], axis=-1)
+        x_position.append(position)
+
         future_high = np.max(high[i + seq_length : i + seq_length + pred_len])
         future_low  = np.min(low[i + seq_length : i + seq_length + pred_len])
 
         # Bedingungen für Long und Short
-        long_ok = future_high >= entry_price * (1 + MINIMUM_PROFIT)
-        short_ok = future_low <= entry_price * (1 - MINIMUM_PROFIT)
+        long_profitable = future_high >= action_price * (1 + MINIMUM_PROFIT)
+        short_profitable = future_low <= action_price * (1 -MINIMUM_PROFIT)
 
-        y_long.append(float(long_ok))
-        y_short.append(float(short_ok))
+        trade_executable = balance >= action_price
+        
 
-    X = np.array(x_seq, dtype=np.float32)  # Shape: (batch, seq_length, 4)
-    y_long = np.array(y_long, dtype=np.float32)
-    y_short = np.array(y_short, dtype=np.float32)
+        if position_type == 0: #neutral
+            y_long.append(1.0 if long_profitable and trade_executable else 0.0)
+            y_short.append(1.0 if short_profitable and trade_executable else 0.0)
+            y_hold.append(0.0)
+            y_close.append(0.0)
+        elif position_type == 1: #long
+            y_long.append(0.0)
+            y_short.append(0.0)
+            y_hold.append(1.0 if long_profitable else 0.0)
+            y_close.append(1.0 if not long_profitable else 0.0)
+        elif position_type == -1: #short
+            y_long.append(0.0)
+            y_short.append(0.0)
+            y_hold.append(1.0 if short_profitable else 0.0)
+            y_close.append(1.0 if not short_profitable else 0.0)
 
-    return X, y_long, y_short
+
+    X_candles = np.array(x_seq, dtype=np.float32)  # Shape: (batch, seq_length, 4)
+    X_balance = np.array(x_balance, dtype=np.float32).reshape(-1, 1)  # Shape: (batch, 1)
+    X_position = np.array(x_position, dtype=np.float32)  # Shape: (batch, 2)
+    Y_long = np.array(y_long, dtype=np.float32)
+    Y_short = np.array(y_short, dtype=np.float32)
+    Y_hold = np.array(y_hold, dtype=np.float32)
+    Y_close = np.array(y_close, dtype=np.float32)
+
+    return X_candles, X_balance, X_position, Y_long, Y_short, Y_hold, Y_close
