@@ -18,7 +18,7 @@ training_set_2 = 'data/BTCUSDT_1m/10k_packs/pack_2.csv'
 training_set_3 = 'data/BTCUSDT_1m/10k_packs/pack_3.csv'
 training_set_4 = 'data/BTCUSDT_1m/10k_packs/pack_4.csv'
 training_sets = [training_set_1, training_set_2, training_set_3, training_set_4]
-batch = 64
+batch = 1
 runs = int()
 
 tf.debugging.set_log_device_placement(False)
