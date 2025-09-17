@@ -4,28 +4,29 @@ from tensorflow.keras.utils import register_keras_serializable
 
 @register_keras_serializable(package="Custom", name="SemiLinearSquared")
 class SemiLinearSquared(keras.losses.Loss):
-    def __init__(self, threshold = 0.1, threshold_is_relative = True, regularization_factor=0.0, name='SemiLinearSquared'):
+    '''Basicly a reverse Huber loss: Below and at thershold: linear, above squared
+    '''
+    def __init__(self, threshold = 1, regularization_factor=0.0, alpha=2, name='SemiLinearSquared'):
         super().__init__(name=name)
         self.threshold = threshold
-        self.threshold_is_relative = threshold_is_relative
         self.regularization_factor = regularization_factor
+        self.alpha = alpha
     def call(self, y_true, y_pred):
         regularization = self.regularization_factor * tf.reduce_mean(tf.square(y_pred))
-        error = y_true-y_pred
-        square = tf.square(error)
-        linear = tf.abs(error)
-        if self.threshold_is_relative:
-            threshold = self.threshold * tf.abs(y_true)
-        else:
-            threshold = self.threshold
+        abs_loss = tf.abs(y_pred - y_true)
+        squ_loss = tf.square(y_pred - y_true)
         
-        loss = tf.where(tf.abs(error) <= threshold, linear, square)
+        loss1 = abs_loss * self.alpha
+        
+        loss2 = ((squ_loss * self.alpha)/2*self.threshold)+((2*self.alpha*self.threshold)/4)
+
+        loss = tf.where(abs_loss <= self.threshold, loss1, loss2)
         return loss + regularization
     def get_config(self):
         return {'name': self.name,
                 'threshold': self.threshold,
-                'threshold_is_relative': self.threshold_is_relative,
-                'regularization_factor': self.regularization_factor}
+                'regularization_factor': self.regularization_factor,
+                'alpha': self.alpha}
     
 @register_keras_serializable(package="Custom", name="NonZeroBCELoss")
 class NonZeroBCELoss(keras.losses.Loss):
