@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.keras.layers import Dense, LSTM, Input, Concatenate, Dropout, GlobalAveragePooling1D
 
 # === TRANSFORMER BLOCKS ===
 def TransformerBlock(x, embed_dim=64, num_heads=4, ff_dim=256, rate=0.1, training=False):
@@ -7,11 +8,10 @@ def TransformerBlock(x, embed_dim=64, num_heads=4, ff_dim=256, rate=0.1, trainin
     attn_output = tf.keras.layers.Dropout(rate)(attn_output, training=training)
     out1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(x0 + attn_output)
     
-    ffn = tf.keras.Sequential([
-        tf.keras.layers.Dense(ff_dim, activation='relu'),
-        tf.keras.layers.Dense(embed_dim),
-    ])
-    ffn_output = ffn(out1)
+    ffn = Dense(embed_dim)(Dense(ff_dim, activation='relu')(out1))
+    
+
+    ffn_output = ffn
     ffn_output = tf.keras.layers.Dropout(rate)(ffn_output, training=training)
     return tf.keras.layers.LayerNormalization(epsilon=1e-6)(out1 + ffn_output)
 

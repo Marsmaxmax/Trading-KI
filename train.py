@@ -12,13 +12,13 @@ import os
 import sys
 
 
-input_file = 'data/BTCUSDT_1m/output.csv'  # Name der Eingabedatei
-training_set_1 = 'data/BTCUSDT_1m/10k_packs/pack_1.csv'
-training_set_2 = 'data/BTCUSDT_1m/10k_packs/pack_2.csv'
-training_set_3 = 'data/BTCUSDT_1m/10k_packs/pack_3.csv'
-training_set_4 = 'data/BTCUSDT_1m/10k_packs/pack_4.csv'
+input_file = 'data/NASDAQ100_5m/50k_packs/pack_20.csv'  # Name der Eingabedatei
+training_set_1 = 'data/BTCUSDT_1m/2.5k_packs/pack_1.csv'
+training_set_2 = 'data/BTCUSDT_1m/2.5k_packs/pack_2.csv'
+training_set_3 = 'data/BTCUSDT_1m/2.5k_packs/pack_3.csv'
+training_set_4 = 'data/BTCUSDT_1m/25k_packs/pack_72.csv'
 training_sets = [training_set_1, training_set_2, training_set_3, training_set_4]
-batch = 1
+batch = 16
 runs = int()
 
 tf.debugging.set_log_device_placement(False)
@@ -26,6 +26,7 @@ tf.debugging.set_log_device_placement(False)
 # sys.argv[1] ist das erste Argument von der Kommandozeile
 if len(sys.argv) > 1:
     print(f" Anzahl Durchläufe {sys.argv[1]}")
+    print(f" Batch Größe{batch}")
     runs = int(sys.argv[1])
 # elif len(sys.argv) > 2:
 #     print(f" Batch Größe{sys.argv[2]}")
@@ -34,10 +35,12 @@ else:
     print("Keine Argumente eingegeben.")
     exit()
 
-data = pd.read_csv(training_set_4, header=None)
-candles = data.values
-X_candles, X_balance, X_position, Y_long, Y_short, Y_hold, Y_close = create_sequences(candles, INPUT_LENGTH)
+data = pd.read_csv(input_file, header=None)
 
+candles = data.values  # Close, Open, High, Low
+
+# Daten in Sequenzen umwandeln
+X, Y = create_sequences(candles, INPUT_LENGTH)
 
 model = load_custom_model(MODEL_FILE)
 checkpoint_prefix = os.path.join(CHECKPOINT_DIR, "ckpt_{epoch}.weights.h5")
@@ -49,8 +52,8 @@ callbacks = [
     # tf.keras.callbacks.LearningRateScheduler(lr_schedule),
     PrintLR()
 ]
-history = model.fit([X_candles,X_position, X_balance], [Y_long, Y_short, Y_hold, Y_close], epochs=runs, batch_size=batch, validation_split=0.2, callbacks=callbacks)
+history = model.fit([X], [Y], epochs=1, batch_size=32, validation_split=0.2, callbacks=callbacks)
 
 model.save(MODEL_FILE)
-model.summary()
+# model.summary()
 print(f'Modell wurde als "{MODEL_FILE}" gespeichert.')

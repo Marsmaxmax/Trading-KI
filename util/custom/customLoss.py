@@ -27,12 +27,19 @@ class SemiLinearSquared(keras.losses.Loss):
                 'threshold_is_relative': self.threshold_is_relative,
                 'regularization_factor': self.regularization_factor}
     
-@register_keras_serializable(package="Custom", name="ProfitLoss")
-class ProfitLoss(keras.losses.Loss):
-    def __init__(self, name='ProfitLoss'):
+@register_keras_serializable(package="Custom", name="NonZeroBCELoss")
+class NonZeroBCELoss(keras.losses.Loss):
+    """A BCE(Biniary Cross Entropy) Loss that punishes with input alpha, if y_pred is 0, or close to 0, but y_true is 1.
+    Asymetrical loss fuction to use when positive cases are more important and/or more rare than negative cases.
+    """
+    def __init__(self,alpha=5.0, name='NonZeroBCELoss'):
+        self.alpha = alpha
         super().__init__(name=name)
     def call(self, y_true, y_pred):
-        #TODO: implement use of price of closed positions; if no position same loss as profit =0 
-        return
+        y_true = tf.reshape(y_true, tf.shape(y_pred))
+        bce = tf.keras.losses.binary_crossentropy(y_true, y_pred)
+        non_zero_penalty = self.alpha * tf.where((y_true == 1) & (y_pred < 0.25), 1.0, 0.0)*(2*y_pred)
+        return bce + non_zero_penalty
     def get_config(self):
-        return {'name': self.name}
+        return {'name': self.name,
+                'alpha': self.alpha}
