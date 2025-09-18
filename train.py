@@ -12,7 +12,7 @@ import os
 import sys
 
 
-input_file = 'data/NASDAQ100_5m/50k_packs/pack_2.csv'  # Name der Eingabedatei
+input_file = 'data/NASDAQ100_5m/output.csv'  # Name der Eingabedatei
 training_set_1 = 'data/BTCUSDT_1m/2.5k_packs/pack_1.csv'
 training_set_2 = 'data/BTCUSDT_1m/2.5k_packs/pack_2.csv'
 training_set_3 = 'data/BTCUSDT_1m/2.5k_packs/pack_3.csv'

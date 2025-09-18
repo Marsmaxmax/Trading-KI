@@ -62,7 +62,7 @@ customoptimizer = keras.optimizers.Adam(
     )
 
 model.compile(optimizer=customoptimizer, 
-              loss=SemiLinearSquared(0.1,0, 5,), 
+              loss=SemiLinearSquared(0.01,0,100), 
               metrics=['accuracy'])
 
 # Modellübersicht anzeigen
