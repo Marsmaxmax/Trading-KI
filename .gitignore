@@ -4,4 +4,4 @@ training_checkpoints
 **/__pycache__/
 Trading-KI.code-workspace
 **/*.csv
-trend_model.keras
+**/*.keras
